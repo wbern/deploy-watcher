@@ -18,12 +18,12 @@ function moveOldDeployFile() {
   const retireDirname = `retired-${currentDate}`;
 
   execSync('mkdir', ['-p', 'old_releases', retireDirname]);
-  execSync('mv', ['gakusei.production.jar', 'nohup.out', `${retireDirname}/`]);
-  execSync('mv', ['gakusei*.jar.to.deploy', 'gakusei.production.jar']);
+  execSync('mv', [argv.productionfilename, 'nohup.out', `${retireDirname}/`]);
+  execSync('mv', [argv.filename, argv.productionfilename]);
 
   // Kill running server
   execSync('pkill', ['-9', '-f', 'gakusei*.jar']);
-  execSync('nohup', ['java', '-jar', 'gakusei.production.jar', '&']);
+  execSync('nohup', ['java', '-jar', argv.productionfilename, '&']);
 }
 
 // main()
@@ -44,8 +44,8 @@ if (argv.filename) {
 
   watcher.on('change', (file, stat) => {
     if (stat) {
-      console.log('New deploy file detected: %s', file);
-      // moveOldDeployFile();
+      console.log(`New deploy file detected: ${file}`);
+      moveOldDeployFile();
     } else {
       console.log('.to.deploy file was deleted, carry on..');
     }
