@@ -15,9 +15,9 @@ console.log = function (d) { //
 
 function moveOldDeployFile() {
   const currentDate = sanitize(new Date().toISOString(), { replacement: '-' });
-  const retireDirname = `retired-${currentDate}`;
+  const retireDirname = `old_releases/retired-${currentDate}`;
 
-  execSync('mkdir', ['-p', 'old_releases', retireDirname]);
+  execSync('mkdir', ['-p', retireDirname]);
   execSync('mv', [argv.productionfilename, 'nohup.out', `${retireDirname}/`]);
   execSync('mv', [argv.filename, argv.productionfilename]);
 
