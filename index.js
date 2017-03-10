@@ -18,12 +18,12 @@ function moveOldDeployFile() {
   const retireDirname = `old_releases/retired-${currentDate}`;
 
   execSync('mkdir', ['-p', retireDirname]);
-  execSync('mv', [argv.productionfilename, 'nohup.out', `${retireDirname}/`]);
-  execSync('mv', [argv.filename, argv.productionfilename]);
+  execSync(`mv ${argv.productionfilename} nohup.out ${retireDirname}/`);
+  execSync(`mv ${argv.filename} ${argv.productionfilename}`);
 
   // Kill running server
-  execSync('pkill', ['-9', '-f', 'gakusei*.jar']);
-  execSync('nohup', ['java', '-jar', argv.productionfilename, '&']);
+  execSync('pkill -9 -f gakusei*.jar');
+  execSync(`nohup java -jar ${argv.productionfilename} &`);
 }
 
 // main()
