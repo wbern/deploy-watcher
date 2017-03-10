@@ -6,7 +6,7 @@ const fs = require('fs');
 const util = require('util');
 
 // logging wrapper
-const logFile = fs.createWriteStream(`${__dirname}/debug.log`, { flags: 'w' });
+const logFile = fs.createWriteStream(`${__dirname}/debug.log`, { flags: 'a' });
 const logStdout = process.stdout;
 console.log = function (d) { //
   logFile.write(`${util.format(d)}\n`);
