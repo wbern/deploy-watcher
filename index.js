@@ -5,8 +5,8 @@ const fs = require('fs');
 const util = require('util');
 
 // Environment variables & other things
-const deployingFilename = process.env.DW_PROD_FILENAME;
-const prodFilename = process.env.DW_DEPLOY_FILENAME;
+const deployingFilename = process.env.DW_DEPLOY_FILENAME;
+const prodFilename = process.env.DW_PROD_FILENAME;
 const scriptLogfile = process.env.DW_SCRIPT_LOGFILE;
 const cwd = process.env.DW_CWD;
 const dbUser = process.env.DW_DB_USER;

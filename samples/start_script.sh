@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 export DW_CWD=$HOME
 export DW_DB_USER="dbuser"
