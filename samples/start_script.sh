@@ -9,6 +9,6 @@ export DW_DB_HOST="127.0.0.1"
 export DW_SCRIPT_LOGFILE="deploy-watcher.log"
 export DW_PROD_FILENAME="app.production.jar"
 export DW_DEPLOY_FILENAME="app.production.jar.to.deploy"
-export DW_PKILL_TEXT="nohup java .*app.*.jar"
+export DW_PKILL_TEXT="java"
 
 node ../index.js
