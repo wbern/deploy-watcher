@@ -5,6 +5,7 @@ const util = require('util');
 
 // Environment variables & other things
 const vars = {
+  scriptMode: process.env.DW_SCRIPT_MODE,
   appLogfile: process.env.DW_APP_LOGFILE || 'server.log',
   deployingFilename: process.env.DW_DEPLOY_FILENAME,
   prodFilename: process.env.DW_PROD_FILENAME,
@@ -16,12 +17,10 @@ const vars = {
   pKillProcessText: process.env.DW_PKILL_TEXT,
   currentDate: sanitize(new Date().toISOString(), { replacement: '-' }),
 };
-vars.retireDirname = `old_releases/retired-${vars.currentDate}`;
-
-for (const currentValue in vars) {
-  if (!currentValue) {
-    throw new Error('One or more environment variables not set. Exiting!');
-  }
+if (vars.scriptMode === 'backup') {
+  vars.backupDirname = `backups/${vars.currentDate}-from-backup`;
+} else {
+  vars.backupDirname = `backups/${vars.currentDate}-from-deploy-backup`;
 }
 
 // Set up logging and working directory
@@ -38,27 +37,62 @@ function execSyncEx(command) {
   console.log(result.toString('utf8'));
 }
 
-function deploy() {
-  try {
-    // Move old production files
-    execSyncEx(`mkdir -pv ${vars.retireDirname}`);
+function start() {
+  if (!vars.prodFilename || !vars.appLogfile) { throw new Error('Variables missing. Exiting.'); }
 
-    execSyncEx(`touch ${vars.appLogfile} && mv -vf ${vars.appLogfile} ${vars.retireDirname}/`); // fail silently
-    execSyncEx(`mv -vf ${vars.prodFilename} ${vars.retireDirname}/`);
-    execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
-
-    // Kill running server & start a new one
-    execSyncEx(`pkill -9 -f "${vars.pKillProcessText}"`);
-
-    // DB backup
-    execSyncEx(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.retireDirname}/db_backup_${vars.currentDate}.sql`);
-
-    // Run new instance
-    execSyncEx(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`);
-  } catch (err) {
-    console.log('Failed to replace currently deployed application.');
-    console.log(err);
-  }
+  execSyncEx(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`);
 }
 
-deploy();
+function stop() {
+  if (!vars.pKillProcessText) { throw new Error('Variables missing. Exiting.'); }
+  execSyncEx(`pkill -9 -f "${vars.pKillProcessText}"`);
+}
+
+function backup() {
+  if (!vars.appLogfile || !vars.prodFilename || !vars.dbHost || !vars.dbUser || !vars.dbOid) { throw new Error('Variables missing. Exiting.'); }
+
+  execSyncEx(`mkdir -pv ${vars.backupDirname}`);
+  execSyncEx(`touch ${vars.appLogfile} && cp -vf ${vars.appLogfile} ${vars.backupDirname}/`); // fail silently
+  execSyncEx(`cp -vf ${vars.prodFilename} ${vars.backupDirname}/`);
+  execSyncEx(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`);
+}
+
+function deploy() {
+  // Because deployments are important
+  for (const currentValue in vars) {
+    if (!currentValue) {
+      throw new Error('One or more environment variables not set. Exiting!');
+    }
+  }
+
+  backup();
+
+  // deploying
+  execSyncEx(`mv -vf ${vars.prodFilename} ${vars.backupDirname}/`);
+  execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
+  stop();
+  start();
+}
+
+switch (vars.scriptMode) {
+  case 'deploy':
+    deploy();
+    break;
+  case 'backup':
+    backup();
+    break;
+  case 'stop':
+    stop();
+    break;
+  case 'start':
+    start();
+    break;
+  case 'restart':
+    stop();
+    start();
+    break;
+  default:
+    console.log('No mode specified, doing nothing');
+    break;
+}
+

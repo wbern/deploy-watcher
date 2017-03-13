@@ -1,6 +1,8 @@
 #!/bin/sh
 
 export DW_CWD=$HOME
+export DW_SCRIPT_MODE='deploy'
+export DW_APP_LOGFILE='server.log'
 export DW_DB_USER="dbuser"
 export DW_DB_OID="mydb"
 export DW_DB_HOST="127.0.0.1"
