@@ -42,16 +42,21 @@ function start() {
 function stop() {
   if (!vars.pKillProcessText) { throw new Error('Variables missing. Exiting.'); }
 
-  // Return OK even if no process was found.
-  const result = spawnSync(`pkill -9 -f "${vars.pKillProcessText}"`, [], { stdio: 'inherit' });
-  console.log(result.toString('utf8'));
+  let result = null;
 
-  if (result.status === 1) {
+  // Return OK even if no process was found.
+  try {
+    result = spawnSync(`pkill -9 -f "${vars.pKillProcessText}"`, [], { stdio: 'inherit' });
+  } catch (err) {
+    console.log(result.toString('utf8'));
+
+    if (result.status === 1) {
       // Process did not exist, but that's fine
-  } else if (result.status === 0) {
+    } else if (result.status === 0) {
       // Exited OK
-  } else {
-    throw new Error(result);
+    } else {
+      throw new Error(err);
+    }
   }
 }
 
