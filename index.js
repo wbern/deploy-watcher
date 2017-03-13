@@ -1,5 +1,5 @@
 const spawnSync = require('child_process').spawnSync;
-const spawnSync = require('child_process').execSync;
+const execSync = require('child_process').execSync;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const util = require('util');
