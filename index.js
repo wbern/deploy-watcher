@@ -7,6 +7,7 @@ const fs = require('fs');
 const util = require('util');
 
 // logging wrapper
+process.chdir(process.env.HOME);
 const logFile = fs.createWriteStream(`${__dirname}/debug.log`, { flags: 'a' });
 const logStdout = process.stdout;
 console.log = function (d) { //
