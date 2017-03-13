@@ -19,11 +19,11 @@ const vars = {
 };
 vars.retireDirname = `old_releases/retired-${vars.currentDate}`;
 
-vars.forEach(variable, () => {
-  if(!variable) {
-    throw new Error("One or more environment variables not set. Exiting!");
+vars.forEach((currentValue) => {
+  if (!currentValue) {
+    throw new Error('One or more environment variables not set. Exiting!');
   }
-}
+});
 
 // Set up logging and working directory
 process.chdir(vars.cwd);
@@ -44,7 +44,7 @@ function moveOldDeployFile() {
     // Move old production files
     execSyncEx(`mkdir -pv ${vars.retireDirname}`);
 
-    execSyncEx(`touch ${vars.appLogfile} && mv -vf ${appLogfile} ${vars.retireDirname}/`); // fail silently
+    execSyncEx(`touch ${vars.appLogfile} && mv -vf ${vars.appLogfile} ${vars.retireDirname}/`); // fail silently
     execSyncEx(`mv -vf ${vars.prodFilename} ${vars.retireDirname}/`);
     execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
 
