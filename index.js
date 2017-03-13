@@ -17,13 +17,18 @@ function moveOldDeployFile() {
   const currentDate = sanitize(new Date().toISOString(), { replacement: '-' });
   const retireDirname = `old_releases/retired-${currentDate}`;
 
-  execSync('mkdir', ['-p', retireDirname]);
-  execSync(`mv ${argv.productionfilename} nohup.out ${retireDirname}/`);
-  execSync(`mv ${argv.filename} ${argv.productionfilename}`);
+  try {
+    execSync(`mkdir -p ${retireDirname}`);
+    execSync(`mv ${argv.productionfilename} nohup.out ${retireDirname}/`);
+    execSync(`mv ${argv.filename} ${argv.productionfilename}`);
 
-  // Kill running server
-  execSync('pkill -9 -f gakusei*.jar');
-  execSync(`nohup java -jar ${argv.productionfilename} &`);
+    // Kill running server & start a new one
+    execSync('pkill -9 -f gakusei*.jar');
+    execSync(`nohup java -jar ${argv.productionfilename} &`);
+  } catch (err) {
+    console.log('Failed to replace currently deployed application.');
+    console.log(err);
+  }
 }
 
 // main()
