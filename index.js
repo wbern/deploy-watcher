@@ -19,7 +19,7 @@ const vars = {
 };
 vars.retireDirname = `old_releases/retired-${vars.currentDate}`;
 
-for (const currentValue of vars) {
+for (const currentValue in vars) {
   if (!currentValue) {
     throw new Error('One or more environment variables not set. Exiting!');
   }
