@@ -34,7 +34,7 @@ console.log = function (d) { //
 
 function execSyncEx(command) {
   const result = execSync(command, [], { stdio: 'inherit' });
-  console.log(result.toString('utf8'));
+  console.log(result.toString('utf8').replace(/\n$/, ''));
 }
 
 function start() {
