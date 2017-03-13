@@ -5,20 +5,29 @@ const fs = require('fs');
 const util = require('util');
 
 // Environment variables & other things
-const deployingFilename = process.env.DW_DEPLOY_FILENAME;
-const prodFilename = process.env.DW_PROD_FILENAME;
-const scriptLogfile = process.env.DW_SCRIPT_LOGFILE;
-const cwd = process.env.DW_CWD;
-const dbUser = process.env.DW_DB_USER;
-const dbHost = process.env.DW_DB_HOST;
-const dbOid = process.env.DW_DB_OID;
-const pKillProcessText = process.env.DW_PKILL_TEXT;
-const currentDate = sanitize(new Date().toISOString(), { replacement: '-' });
-const retireDirname = `old_releases/retired-${currentDate}`;
+const vars = {
+  appLogfile: process.env.DW_APP_LOGFILE || 'server.log',
+  deployingFilename: process.env.DW_DEPLOY_FILENAME,
+  prodFilename: process.env.DW_PROD_FILENAME,
+  scriptLogfile: process.env.DW_SCRIPT_LOGFILE,
+  cwd: process.env.DW_CWD,
+  dbUser: process.env.DW_DB_USER,
+  dbHost: process.env.DW_DB_HOST,
+  dbOid: process.env.DW_DB_OID,
+  pKillProcessText: process.env.DW_PKILL_TEXT,
+  currentDate: sanitize(new Date().toISOString(), { replacement: '-' }),
+};
+vars.retireDirname = `old_releases/retired-${vars.currentDate}`;
+
+vars.forEach(variable, () => {
+  if(!variable) {
+    throw new Error("One or more environment variables not set. Exiting!");
+  }
+}
 
 // Set up logging and working directory
-process.chdir(cwd);
-const logFile = fs.createWriteStream(`${scriptLogfile}`, { flags: 'a' });
+process.chdir(vars.cwd);
+const logFile = fs.createWriteStream(`${vars.scriptLogfile}`, { flags: 'a' });
 const logStdout = process.stdout;
 console.log = function (d) { //
   logFile.write(`${util.format(d)}\n`);
@@ -33,19 +42,20 @@ function execSyncEx(command) {
 function moveOldDeployFile() {
   try {
     // Move old production files
-    execSyncEx(`mkdir -pv ${retireDirname}`);
-    execSyncEx(`mv -vf server.log ${retireDirname}/ 2>/dev/null`); // fail silently
-    execSyncEx(`mv -vf ${prodFilename} server.log ${retireDirname}/`);
-    execSyncEx(`mv -vf ${deployingFilename} ${prodFilename}`);
+    execSyncEx(`mkdir -pv ${vars.retireDirname}`);
+
+    execSyncEx(`touch ${vars.appLogfile} && mv -vf ${appLogfile} ${vars.retireDirname}/`); // fail silently
+    execSyncEx(`mv -vf ${vars.prodFilename} ${vars.retireDirname}/`);
+    execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
 
     // Kill running server & start a new one
-    execSyncEx(`pkill -9 -f "${pKillProcessText}"`);
+    execSyncEx(`pkill -9 -f "${vars.pKillProcessText}"`);
 
     // DB backup
-    execSyncEx(`pg_dump -U ${dbUser} -h ${dbHost} -o ${dbOid} > ${retireDirname}/db_backup_${currentDate}.sql`);
+    execSyncEx(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.retireDirname}/db_backup_${vars.currentDate}.sql`);
 
     // Run new instance
-    execSyncEx(`nohup java -jar ${prodFilename} &> server.log&`);
+    execSyncEx(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`);
   } catch (err) {
     console.log('Failed to replace currently deployed application.');
     console.log(err);
@@ -60,8 +70,8 @@ const watcher = filewatcher({
   persistent: true,      // don't end the process while files are watched
 });
 
-console.log(`Watching for file changes in file: ${deployingFilename}`);
-watcher.add(deployingFilename);
+console.log(`Watching for file changes in file: ${vars.deployingFilename}`);
+watcher.add(vars.deployingFilename);
 
 watcher.on('change', (file, stat) => {
   if (stat) {
