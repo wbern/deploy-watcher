@@ -1,6 +1,7 @@
 const filewatcher = require('filewatcher');
 const argv = require('minimist')(process.argv.slice(2));
 const execSync = require('child_process').execSync;
+const spawn = require('child_process').spawn;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const util = require('util');
@@ -13,18 +14,29 @@ console.log = function (d) { //
   logStdout.write(`${util.format(d)}\n`);
 };
 
+function execSyncEx(command) {
+  const result = execSync(command, [], { stdio: 'inherit' });
+  console.log(result.toString('utf8'));
+}
+
 function moveOldDeployFile() {
   const currentDate = sanitize(new Date().toISOString(), { replacement: '-' });
   const retireDirname = `old_releases/retired-${currentDate}`;
 
   try {
-    execSync(`mkdir -p ${retireDirname}`);
-    execSync(`mv ${argv.productionfilename} nohup.out ${retireDirname}/`);
-    execSync(`mv ${argv.filename} ${argv.productionfilename}`);
+    // Move old production files
+    execSyncEx(`mkdir -pv ${retireDirname}`);
+    execSyncEx(`mv -vf ${argv.productionfilename} server.log ${retireDirname}/`);
+    execSyncEx(`mv -vf ${argv.filename} ${argv.productionfilename}`);
 
     // Kill running server & start a new one
-    execSync('pkill -9 -f gakusei*.jar');
-    execSync(`nohup java -jar ${argv.productionfilename} &`);
+    execSyncEx('pkill -9 -f gakusei*.jar');
+
+    // DB backup
+    execSyncEx(`pg_dump -U gakusei -h 127.0.0.1 -o gakusei > ${retireDirname}/db_backup_${currentDate}.sql`);
+
+    // Run new instance
+    execSyncEx(`nohup java -jar ${argv.productionfilename} &> server.log&`);
   } catch (err) {
     console.log('Failed to replace currently deployed application.');
     console.log(err);
@@ -51,6 +63,7 @@ if (argv.filename) {
     if (stat) {
       console.log(`New deploy file detected: ${file}`);
       moveOldDeployFile();
+      console.log('Finished change in production.');
     } else {
       console.log('.to.deploy file was deleted, carry on..');
     }
