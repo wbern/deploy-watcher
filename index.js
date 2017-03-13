@@ -1,14 +1,24 @@
 const filewatcher = require('filewatcher');
-const argv = require('minimist')(process.argv.slice(2));
 const execSync = require('child_process').execSync;
-const spawn = require('child_process').spawn;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const util = require('util');
 
-// logging wrapper
-process.chdir(process.env.HOME);
-const logFile = fs.createWriteStream(`${__dirname}/debug.log`, { flags: 'a' });
+// Environment variables & other things
+const deployingFilename = process.env.DW_PROD_FILENAME;
+const prodFilename = process.env.DW_DEPLOY_FILENAME;
+const scriptLogfile = process.env.DW_SCRIPT_LOGFILE;
+const cwd = process.env.DW_CWD;
+const dbUser = process.env.DW_DB_USER;
+const dbHost = process.env.DW_DB_HOST;
+const dbOid = process.env.DW_DB_OID;
+const pKillProcessText = process.env.DW_PKILL_TEXT;
+const currentDate = sanitize(new Date().toISOString(), { replacement: '-' });
+const retireDirname = `old_releases/retired-${currentDate}`;
+
+// Set up logging and working directory
+process.chdir(cwd);
+const logFile = fs.createWriteStream(`${scriptLogfile}`, { flags: 'a' });
 const logStdout = process.stdout;
 console.log = function (d) { //
   logFile.write(`${util.format(d)}\n`);
@@ -21,23 +31,20 @@ function execSyncEx(command) {
 }
 
 function moveOldDeployFile() {
-  const currentDate = sanitize(new Date().toISOString(), { replacement: '-' });
-  const retireDirname = `old_releases/retired-${currentDate}`;
-
   try {
     // Move old production files
     execSyncEx(`mkdir -pv ${retireDirname}`);
-    execSyncEx(`mv -vf ${argv.productionfilename} server.log ${retireDirname}/`);
-    execSyncEx(`mv -vf ${argv.filename} ${argv.productionfilename}`);
+    execSyncEx(`mv -vf ${prodFilename} server.log ${retireDirname}/`);
+    execSyncEx(`mv -vf ${deployingFilename} ${prodFilename}`);
 
     // Kill running server & start a new one
-    execSyncEx('pkill -9 -f "nohup java .*gakusei.*.jar"');
+    execSyncEx(`pkill -9 -f "${pKillProcessText}"`);
 
     // DB backup
-    execSyncEx(`pg_dump -U gakusei -h 127.0.0.1 -o gakusei > ${retireDirname}/db_backup_${currentDate}.sql`);
+    execSyncEx(`pg_dump -U ${dbUser} -h ${dbHost} -o ${dbOid} > ${retireDirname}/db_backup_${currentDate}.sql`);
 
     // Run new instance
-    execSyncEx(`nohup java -jar ${argv.productionfilename} &> server.log&`);
+    execSyncEx(`nohup java -jar ${prodFilename} &> server.log&`);
   } catch (err) {
     console.log('Failed to replace currently deployed application.');
     console.log(err);
@@ -45,30 +52,22 @@ function moveOldDeployFile() {
 }
 
 // main()
-if (argv.filename) {
-  // the default options
-  const opts = {
-    forcePolling: false,  // try event-based watching first
-    debounce: 10,         // debounce events in non-polling mode by 10ms
-    interval: 1000,       // if we need to poll, do it every 1000ms
-    persistent: true,      // don't end the process while files are watched
-  };
+const watcher = filewatcher({
+  forcePolling: false,  // try event-based watching first
+  debounce: 10,         // debounce events in non-polling mode by 10ms
+  interval: 1000,       // if we need to poll, do it every 1000ms
+  persistent: true,      // don't end the process while files are watched
+});
 
-  const watcher = filewatcher(opts);
-  console.log(`Watching for file changes in file: ${argv.filename}`);
+console.log(`Watching for file changes in file: ${deployingFilename}`);
+watcher.add(deployingFilename);
 
-  // watch a file
-  watcher.add(argv.filename);
-
-  watcher.on('change', (file, stat) => {
-    if (stat) {
-      console.log(`New deploy file detected: ${file}`);
-      moveOldDeployFile();
-      console.log('Finished change in production.');
-    } else {
-      console.log('.to.deploy file was deleted, carry on..');
-    }
-  });
-} else {
-  console.log("You did not specify a filename to watch for, so I can't deploy new files..");
-}
+watcher.on('change', (file, stat) => {
+  if (stat) {
+    console.log(`New deploy file detected: ${file}`);
+    moveOldDeployFile();
+    console.log('Finished change in production.');
+  } else {
+    console.log('.to.deploy file was deleted, carry on..');
+  }
+});
