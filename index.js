@@ -1,4 +1,3 @@
-const filewatcher = require('filewatcher');
 const execSync = require('child_process').execSync;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
@@ -39,7 +38,7 @@ function execSyncEx(command) {
   console.log(result.toString('utf8'));
 }
 
-function moveOldDeployFile() {
+function deploy() {
   try {
     // Move old production files
     execSyncEx(`mkdir -pv ${vars.retireDirname}`);
@@ -62,23 +61,4 @@ function moveOldDeployFile() {
   }
 }
 
-// main()
-const watcher = filewatcher({
-  forcePolling: false,  // try event-based watching first
-  debounce: 10,         // debounce events in non-polling mode by 10ms
-  interval: 1000,       // if we need to poll, do it every 1000ms
-  persistent: true,      // don't end the process while files are watched
-});
-
-console.log(`Watching for file changes in file: ${vars.deployingFilename}`);
-watcher.add(vars.deployingFilename);
-
-watcher.on('change', (file, stat) => {
-  if (stat) {
-    console.log(`New deploy file detected: ${file}`);
-    moveOldDeployFile();
-    console.log('Finished change in production.');
-  } else {
-    console.log('.to.deploy file was deleted, carry on..');
-  }
-});
+deploy();
