@@ -50,7 +50,9 @@ function stop() {
     execSync(`killall -w -u ec2-user -r "${vars.pKillProcessText}"`, [], { stdio: 'inherit' });
   } catch (err) {
     // Ignore errors here, probably just that the process was not running
+    return '';
   }
+  return '';
 }
 
 function backup() {
