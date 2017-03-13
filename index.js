@@ -34,6 +34,7 @@ function moveOldDeployFile() {
   try {
     // Move old production files
     execSyncEx(`mkdir -pv ${retireDirname}`);
+    execSyncEx(`mv -vf server.log ${retireDirname}/ 2>/dev/null`); // fail silently
     execSyncEx(`mv -vf ${prodFilename} server.log ${retireDirname}/`);
     execSyncEx(`mv -vf ${deployingFilename} ${prodFilename}`);
 
