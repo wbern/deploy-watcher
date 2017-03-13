@@ -1,4 +1,5 @@
 const spawnSync = require('child_process').spawnSync;
+const spawnSync = require('child_process').execSync;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const util = require('util');
@@ -32,11 +33,15 @@ console.log = function (d) { //
   logStdout.write(`${util.format(d)}\n`);
 };
 
+function execSyncEx(command) {
+  const result = execSync(command, [], { stdio: 'inherit' });
+  console.log(result.toString('utf8'));
+}
+
 function start() {
   if (!vars.prodFilename || !vars.appLogfile) { throw new Error('Variables missing. Exiting.'); }
 
-  const result = spawnSync(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`, [], { stdio: 'inherit' });
-  console.log(result.toString('utf8'));
+  execSyncEx(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`, [], { stdio: 'inherit' });
 }
 
 function stop() {
@@ -63,10 +68,10 @@ function stop() {
 function backup() {
   if (!vars.appLogfile || !vars.prodFilename || !vars.dbHost || !vars.dbUser || !vars.dbOid) { throw new Error('Variables missing. Exiting.'); }
 
-  spawnSync(`mkdir -pv ${vars.backupDirname}`, [], { stdio: 'inherit' });
-  spawnSync(`touch ${vars.appLogfile} && cp -vf ${vars.appLogfile} ${vars.backupDirname}/`, [], { stdio: 'inherit' }); // fail silently
-  spawnSync(`cp -vf ${vars.prodFilename} ${vars.backupDirname}/`, [], { stdio: 'inherit' });
-  spawnSync(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`, [], { stdio: 'inherit' });
+  execSyncEx(`mkdir -pv ${vars.backupDirname}`);
+  execSyncEx(`touch ${vars.appLogfile} && cp -vf ${vars.appLogfile} ${vars.backupDirname}/`); // fail silently
+  execSyncEx(`cp -vf ${vars.prodFilename} ${vars.backupDirname}/`);
+  execSyncEx(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`);
 }
 
 function deploy() {
@@ -80,8 +85,8 @@ function deploy() {
   backup();
 
   // deploying
-  spawnSync(`mv -vf ${vars.prodFilename} ${vars.backupDirname}/`, [], { stdio: 'inherit' });
-  spawnSync(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`, [], { stdio: 'inherit' });
+  execSyncEx(`mv -vf ${vars.prodFilename} ${vars.backupDirname}/`);
+  execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
   stop();
   start();
 }
