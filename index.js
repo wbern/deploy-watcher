@@ -1,4 +1,3 @@
-const spawnSync = require('child_process').spawnSync;
 const execSync = require('child_process').execSync;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
@@ -47,21 +46,10 @@ function start() {
 function stop() {
   if (!vars.pKillProcessText) { throw new Error('Variables missing. Exiting.'); }
 
-  let result = null;
-
-  // Return OK even if no process was found.
   try {
-    result = spawnSync(`pkill -9 -f "${vars.pKillProcessText}"`, [], { stdio: 'inherit' });
+    execSync(`killall -w -u ec2-user -r "${vars.pKillProcessText}"`, [], { stdio: 'inherit' });
   } catch (err) {
-    console.log(result.toString('utf8'));
-
-    if (result.status === 1) {
-      // Process did not exist, but that's fine
-    } else if (result.status === 0) {
-      // Exited OK
-    } else {
-      throw new Error(err);
-    }
+    // Ignore errors here, probably just that the process was not running
   }
 }
 
