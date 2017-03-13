@@ -62,6 +62,7 @@ function backup() {
   execSyncEx(`touch ${vars.appLogfile} && cp -vf ${vars.appLogfile} ${vars.backupDirname}/`); // fail silently
   execSyncEx(`cp -vf ${vars.prodFilename} ${vars.backupDirname}/`);
   execSyncEx(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`);
+  execSyncEx(`wc -c ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`);
 }
 
 function deploy() {
