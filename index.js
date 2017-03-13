@@ -45,7 +45,9 @@ function start() {
 
 function stop() {
   if (!vars.pKillProcessText) { throw new Error('Variables missing. Exiting.'); }
-  execSyncEx(`pkill -9 -f "${vars.pKillProcessText}"`);
+
+  // Return OK even if no process was found.
+  execSyncEx(`pkill -9 -f "${vars.pKillProcessText}" || if [ $? != 1 ] ; then (exit $?) ; else (exit 0) ; fi`);
 }
 
 function backup() {
