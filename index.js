@@ -75,8 +75,8 @@ function deploy() {
   backup();
 
   // deploying
-  execSyncEx(`mv -vf ${vars.prodFilename} ${vars.backupDirname}/`);
   execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
+
   stop();
   start();
 }
