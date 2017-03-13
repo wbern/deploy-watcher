@@ -1,4 +1,4 @@
-const execSync = require('child_process').execSync;
+const spawnSync = require('child_process').spawnSync;
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const util = require('util');
@@ -32,31 +32,36 @@ console.log = function (d) { //
   logStdout.write(`${util.format(d)}\n`);
 };
 
-function execSyncEx(command) {
-  const result = execSync(command, [], { stdio: 'inherit' });
-  console.log(result.toString('utf8'));
-}
-
 function start() {
   if (!vars.prodFilename || !vars.appLogfile) { throw new Error('Variables missing. Exiting.'); }
 
-  execSyncEx(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`);
+  const result = spawnSync(`nohup java -jar ${vars.prodFilename} &> ${vars.appLogfile}&`, [], { stdio: 'inherit' });
+  console.log(result.toString('utf8'));
 }
 
 function stop() {
   if (!vars.pKillProcessText) { throw new Error('Variables missing. Exiting.'); }
 
   // Return OK even if no process was found.
-  execSyncEx(`pkill -9 -f "${vars.pKillProcessText}" || if [ $? != 1 ] ; then (exit $?) ; else (exit 0) ; fi`);
+  const result = spawnSync(`pkill -9 -f "${vars.pKillProcessText}"`, [], { stdio: 'inherit' });
+  console.log(result.toString('utf8'));
+
+  if (result.status === 1) {
+      // Process did not exist, but that's fine
+  } else if (result.status === 0) {
+      // Exited OK
+  } else {
+    throw new Error(result);
+  }
 }
 
 function backup() {
   if (!vars.appLogfile || !vars.prodFilename || !vars.dbHost || !vars.dbUser || !vars.dbOid) { throw new Error('Variables missing. Exiting.'); }
 
-  execSyncEx(`mkdir -pv ${vars.backupDirname}`);
-  execSyncEx(`touch ${vars.appLogfile} && cp -vf ${vars.appLogfile} ${vars.backupDirname}/`); // fail silently
-  execSyncEx(`cp -vf ${vars.prodFilename} ${vars.backupDirname}/`);
-  execSyncEx(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`);
+  spawnSync(`mkdir -pv ${vars.backupDirname}`, [], { stdio: 'inherit' });
+  spawnSync(`touch ${vars.appLogfile} && cp -vf ${vars.appLogfile} ${vars.backupDirname}/`, [], { stdio: 'inherit' }); // fail silently
+  spawnSync(`cp -vf ${vars.prodFilename} ${vars.backupDirname}/`, [], { stdio: 'inherit' });
+  spawnSync(`pg_dump -U ${vars.dbUser} -h ${vars.dbHost} -o ${vars.dbOid} > ${vars.backupDirname}/db_backup_${vars.currentDate}.sql`, [], { stdio: 'inherit' });
 }
 
 function deploy() {
@@ -70,8 +75,8 @@ function deploy() {
   backup();
 
   // deploying
-  execSyncEx(`mv -vf ${vars.prodFilename} ${vars.backupDirname}/`);
-  execSyncEx(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`);
+  spawnSync(`mv -vf ${vars.prodFilename} ${vars.backupDirname}/`, [], { stdio: 'inherit' });
+  spawnSync(`mv -vf ${vars.deployingFilename} ${vars.prodFilename}`, [], { stdio: 'inherit' });
   stop();
   start();
 }
