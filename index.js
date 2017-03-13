@@ -31,7 +31,7 @@ function moveOldDeployFile() {
     execSyncEx(`mv -vf ${argv.filename} ${argv.productionfilename}`);
 
     // Kill running server & start a new one
-    execSyncEx('pkill -9 -f gakusei.*.jar');
+    execSyncEx('pkill -9 -f "nohup java .*gakusei.*.jar"');
 
     // DB backup
     execSyncEx(`pg_dump -U gakusei -h 127.0.0.1 -o gakusei > ${retireDirname}/db_backup_${currentDate}.sql`);
