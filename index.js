@@ -19,11 +19,11 @@ const vars = {
 };
 vars.retireDirname = `old_releases/retired-${vars.currentDate}`;
 
-vars.forEach((currentValue) => {
+for (const currentValue of vars) {
   if (!currentValue) {
     throw new Error('One or more environment variables not set. Exiting!');
   }
-});
+}
 
 // Set up logging and working directory
 process.chdir(vars.cwd);
