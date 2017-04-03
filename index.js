@@ -40,7 +40,7 @@ function execSyncEx(command) {
 function start() {
   if (!vars.prodFilename || !vars.appLogfile) { throw new Error('Variables missing. Exiting.'); }
 
-  execSyncEx(`nohup java -jar ${vars.prodFilename} --spring.profiles.active=postgres &> ${vars.appLogfile}&`, [], { stdio: 'inherit' });
+  execSyncEx(`nohup java -jar ${vars.prodFilename} --spring.profiles.active='postgres,enable-resource-caching' &> ${vars.appLogfile}&`, [], { stdio: 'inherit' });
 }
 
 function stop() {
